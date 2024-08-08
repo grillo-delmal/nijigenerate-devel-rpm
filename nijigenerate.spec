@@ -5,20 +5,9 @@
 %define nijigenerate_short 1d7e82d
 
 # Project maintained deps
-%define i2d_imgui_semver 0.8.0+build.4.ge34f8ba
-%define i2d_imgui_commit e34f8ba04c0085be7ee83a8df200cf2ffb30bfd3
-%define i2d_imgui_short e34f8ba
-
 %define nijilive_semver 0.0.1+build.0-og.0.0.0.build.649.20567d5
 %define nijilive_commit 20567d51f25d629c9378745b88a2c30d0f6216e0
 %define nijilive_short 20567d5
-
-# cimgui
-%define cimgui_commit 49bb5ce65f7d5eeab7861d8ffd5aa2a58ca8f08c
-%define cimgui_short 49bb5ce
-%define imgui_commit dd5b7c6847372016f45d5b5abda687bd5cd19224
-%define imgui_short dd5b7c6
-
 
 %if 0%{nijigenerate_dist} > 0
 %define nijigenerate_suffix ^%{nijigenerate_dist}.git%{nijigenerate_short}
@@ -30,7 +19,6 @@ Release:        %autorelease
 Summary:        Tool to create and edit nijilive puppets
 
 # Bundled lib licenses
-##   i2d-imgui licenses: BSL-1.0 and MIT
 ##   nijilive licenses: BSD-2-Clause
 # Static dependencies licenses
 ##   bcaa licenses: BSL-1.0
@@ -43,6 +31,7 @@ Summary:        Tool to create and edit nijilive puppets
 ##   dxml licenses: BSL-1.0
 ##   fghj licenses: BSL-1.0
 ##   i18n-d licenses: BSD-2-Clause
+##   i2d-imgui licenses: BSL-1.0 and MIT
 ##   i2d-opengl licenses: BSL-1.0
 ##   imagefmt licenses: BSD-2-Clause
 ##   inmath licenses: BSD-2-Clause
@@ -61,12 +50,7 @@ URL:            https://github.com/grillo-delmal/nijigenerate-rpm
 Source0:        https://github.com/nijigenerate/nijigenerate/archive/%{nijigenerate_commit}/%{name}-%{nijigenerate_short}.tar.gz
 
 # Project maintained deps
-Source1:        https://github.com/Inochi2D/i2d-imgui/archive/%{i2d_imgui_commit}/i2d-imgui-%{i2d_imgui_short}.tar.gz
-Source2:        https://github.com/nijigenerate/nijilive/archive/%{nijilive_commit}/nijilive-%{nijilive_short}.tar.gz
-
-# cimgui
-Source3:        https://github.com/Inochi2D/cimgui/archive/%{cimgui_commit}/cimgui-%{cimgui_short}.tar.gz
-Source4:        https://github.com/Inochi2D/imgui/archive/%{imgui_commit}/imgui-%{imgui_short}.tar.gz
+Source1:        https://github.com/nijigenerate/nijilive/archive/%{nijilive_commit}/nijilive-%{nijilive_short}.tar.gz
 
 Patch0:         nijigenerate_0_icon-path.patch
 Patch1:         nijilive_0_rm-gitver.patch
@@ -75,14 +59,6 @@ Patch1:         nijilive_0_rm-gitver.patch
 # dlang
 BuildRequires:  ldc
 BuildRequires:  dub
-
-# cimgui
-BuildRequires:  cmake
-BuildRequires:  gcc
-BuildRequires:  gcc-c++
-BuildRequires:  freetype-devel
-BuildRequires:  SDL2-devel
-BuildRequires:  dbus-devel
 
 BuildRequires:  desktop-file-utils
 BuildRequires:  libappstream-glib
@@ -98,6 +74,7 @@ BuildRequires:  zdub-dunit-static
 BuildRequires:  zdub-dxml-static
 BuildRequires:  zdub-fghj-static
 BuildRequires:  zdub-i18n-d-static
+BuildRequires:  zdub-i2d-imgui-static
 BuildRequires:  zdub-i2d-opengl-static
 BuildRequires:  zdub-imagefmt-static
 BuildRequires:  zdub-inmath-static
@@ -133,10 +110,6 @@ mkdir deps
 
 # Project maintained deps
 tar -xzf %{SOURCE1}
-mv i2d-imgui-%{i2d_imgui_commit} deps/i2d-imgui
-dub add-local deps/i2d-imgui/ "%{i2d_imgui_semver}"
-
-tar -xzf %{SOURCE2}
 mv nijilive-%{nijilive_commit} deps/nijilive
 dub add-local deps/nijilive/ "%{nijilive_semver}"
 
@@ -152,36 +125,6 @@ enum IN_VERSION = "%{nijilive_semver}";
 EOF
 
 popd; popd
-
-# cimgui
-
-tar -xzf %{SOURCE3}
-rm -r deps/i2d-imgui/deps/cimgui
-mv cimgui-%{cimgui_commit} deps/i2d-imgui/deps/cimgui
-
-tar -xzf %{SOURCE4}
-rm -r deps/i2d-imgui/deps/cimgui/imgui
-mv imgui-%{imgui_commit} deps/i2d-imgui/deps/cimgui/imgui
-
-pushd deps; pushd i2d-imgui
-
-rm -rf deps/freetype
-rm -rf deps/glbinding
-rm -rf deps/glfw
-rm -rf deps/SDL
-rm -rf deps/cimgui/imgui/examples/
-
-# FIX: Make i2d-imgui submodule checking only check cimgui
-rm .gitmodules
-cat > .gitmodules <<EOF
-[submodule "deps/cimgui"]
-	path = deps/cimgui
-	url = https://github.com/Inochi2D/cimgui.git
-EOF
-mkdir deps/cimgui/.git
-
-popd; popd
-
 
 
 %build
@@ -214,13 +157,6 @@ install -d $RPM_BUILD_ROOT/%{_datadir}/icons/hicolor/256x256/apps/
 install -p -m 644 res/logo_256.png $RPM_BUILD_ROOT/%{_datadir}/icons/hicolor/256x256/apps/nijigenerate.png
 
 # Dependency licenses
-install -d ${RPM_BUILD_ROOT}%{_datadir}/licenses/%{name}/./deps/i2d-imgui/cimgui/
-install -p -m 644 ./deps/i2d-imgui/deps/cimgui/LICENSE \
-    ${RPM_BUILD_ROOT}%{_datadir}/licenses/%{name}/./deps/i2d-imgui/cimgui/LICENSE
-install -d ${RPM_BUILD_ROOT}%{_datadir}/licenses/%{name}/./deps/i2d-imgui/imgui/
-install -p -m 644 ./deps/i2d-imgui/deps/cimgui/imgui/LICENSE.txt \
-    ${RPM_BUILD_ROOT}%{_datadir}/licenses/%{name}/./deps/i2d-imgui/imgui/LICENSE.txt
-
 install -d ${RPM_BUILD_ROOT}%{_datadir}/licenses/%{name}/deps/
 find ./deps/ -mindepth 1 -maxdepth 1 -exec \
     install -d ${RPM_BUILD_ROOT}%{_datadir}/licenses/%{name}/{} ';'
