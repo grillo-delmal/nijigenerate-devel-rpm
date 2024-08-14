@@ -5,7 +5,7 @@
 %define nijigenerate_short 1d7e82d
 
 # Project maintained deps
-%define nijilive_semver 0.0.1+build.0-og.0.0.0.build.649.20567d5
+%define nijilive_semver 0.0.0+build.649.20567d5
 %define nijilive_commit 20567d51f25d629c9378745b88a2c30d0f6216e0
 %define nijilive_short 20567d5
 
@@ -53,16 +53,18 @@ Source0:        https://github.com/nijigenerate/nijigenerate/archive/%{nijigener
 Source1:        https://github.com/nijigenerate/nijilive/archive/%{nijilive_commit}/nijilive-%{nijilive_short}.tar.gz
 
 Patch0:         nijigenerate_0_icon-path.patch
-Patch1:         nijilive_0_rm-gitver.patch
-
+Patch1:         nijigenerate_1_deps.patch
 
 # dlang
 BuildRequires:  ldc
 BuildRequires:  dub
+BuildRequires:  jq
 
 BuildRequires:  desktop-file-utils
 BuildRequires:  libappstream-glib
 BuildRequires:  git
+
+BuildRequires:  zdub-dub-settings-hack
 
 BuildRequires:  zdub-bcaa-static
 BuildRequires:  zdub-bindbc-loader-static
@@ -87,7 +89,20 @@ BuildRequires:  zdub-psd-d-static
 BuildRequires:  zdub-silly-static
 BuildRequires:  zdub-tinyfiledialogs-static
 
+# static i2d-imgui reqs
+BuildRequires:  gcc-c++
+BuildRequires:  freetype-devel
+BuildRequires:  SDL2-devel
+
 Requires:       hicolor-icon-theme
+
+#dportals deps
+Requires:       dbus
+
+#i2d-imgui deps
+Requires:       libstdc++
+Requires:       freetype
+Requires:       SDL2
 
 
 %description
@@ -95,18 +110,28 @@ nijilive is a framework for realtime 2D puppet animation which can be used for V
 game development and digital animation. 
 nijigenerate is a tool that lets you create and edit nijilive puppets.
 
+
 %prep
 %setup -n %{name}-%{nijigenerate_commit}
 
-# FIX: nijigenerate version dependent on git
+# FIX: Nijigenerate version dependent on git
 cat > source/nijigenerate/ver.d <<EOF
 module nijigenerate.ver;
 
 enum INC_VERSION = "%{nijigenerate_semver}";
 EOF
 
-%patch0 -p1 -b .nijigenerate-icon-path
-mkdir deps
+# FIX: Add fake dependency
+mkdir -p deps/vibe-d
+cat > deps/vibe-d/dub.sdl <<EOF
+name "vibe-d"
+subpackage "http"
+EOF
+dub add-local deps/vibe-d "0.9.5"
+
+%patch -P 0 -p1 -b .nijigenerate-icon-path
+%patch -P 1 -p1 -b .nijigenerate-deps
+mkdir -p deps
 
 # Project maintained deps
 tar -xzf %{SOURCE1}
@@ -115,14 +140,16 @@ dub add-local deps/nijilive/ "%{nijilive_semver}"
 
 pushd deps; pushd nijilive
 
-%patch1 -p1 -b .nijilive-rm-gitver
-
 # FIX: nijilive version dependent on git
 cat > source/nijilive/ver.d <<EOF
 module nijilive.ver;
 
 enum IN_VERSION = "%{nijilive_semver}";
 EOF
+
+[ -f dub.sdl ] && dub convert -f json
+mv -f dub.json dub.json.base
+jq 'walk(if type == "object" then with_entries(select(.key | test("preBuildCommands*") | not)) else . end)' dub.json.base > dub.json
 
 popd; popd
 
@@ -133,6 +160,7 @@ dub build \
     --cache=local \
     --config=linux-full \
     --skip-registry=all \
+    --non-interactive \
     --temp-build \
     --compiler=ldc2
 mkdir ./out/
@@ -144,17 +172,17 @@ install -d ${RPM_BUILD_ROOT}%{_bindir}
 install -p ./out/nijigenerate ${RPM_BUILD_ROOT}%{_bindir}/nijigenerate
 
 install -d ${RPM_BUILD_ROOT}%{_datadir}/applications/
-install -p -m 644 build-aux/linux/nijigenerate.desktop ${RPM_BUILD_ROOT}%{_datadir}/applications/nijigenerate.desktop
+install -p -m 644 ./build-aux/linux/nijigenerate.desktop ${RPM_BUILD_ROOT}%{_datadir}/applications/nijigenerate.desktop
 desktop-file-validate \
     ${RPM_BUILD_ROOT}%{_datadir}/applications/nijigenerate.desktop
 
 install -d ${RPM_BUILD_ROOT}%{_metainfodir}/
-install -p -m 644 build-aux/linux/nijigenerate.appdata.xml ${RPM_BUILD_ROOT}%{_metainfodir}/nijigenerate.appdata.xml
+install -p -m 644 ./build-aux/linux/nijigenerate.appdata.xml ${RPM_BUILD_ROOT}%{_metainfodir}/nijigenerate.appdata.xml
 appstream-util validate-relax --nonet \
     ${RPM_BUILD_ROOT}%{_metainfodir}/nijigenerate.appdata.xml
 
 install -d $RPM_BUILD_ROOT/%{_datadir}/icons/hicolor/256x256/apps/
-install -p -m 644 res/logo_256.png $RPM_BUILD_ROOT/%{_datadir}/icons/hicolor/256x256/apps/nijigenerate.png
+install -p -m 644 ./res/logo_256.png $RPM_BUILD_ROOT/%{_datadir}/icons/hicolor/256x256/apps/nijigenerate.png
 
 # Dependency licenses
 install -d ${RPM_BUILD_ROOT}%{_datadir}/licenses/%{name}/deps/
