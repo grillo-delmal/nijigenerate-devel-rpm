@@ -1,13 +1,13 @@
 %define nijigenerate_ver 0.7.1
-%define nijigenerate_semver 0.7.1+build.993.g1d7e82d
-%define nijigenerate_dist 993
-%define nijigenerate_commit 1d7e82dc6a4a7d0a9afbb9bb77007a9550a92508
-%define nijigenerate_short 1d7e82d
+%define nijigenerate_semver 0.7.1+build.994.ge77ca8a
+%define nijigenerate_dist 994
+%define nijigenerate_commit e77ca8ab25a31b54b0b3e6747e98a5d9b7eea993
+%define nijigenerate_short e77ca8a
 
 # Project maintained deps
-%define nijilive_semver 0.0.0+build.649.20567d5
-%define nijilive_commit 20567d51f25d629c9378745b88a2c30d0f6216e0
-%define nijilive_short 20567d5
+%define nijilive_semver 0.0.0+build.652.bd00329
+%define nijilive_commit bd003295f2bae1c67127d4f5c051a9e91099078a
+%define nijilive_short bd00329
 
 %if 0%{nijigenerate_dist} > 0
 %define nijigenerate_suffix ^%{nijigenerate_dist}.git%{nijigenerate_short}
