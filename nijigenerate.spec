@@ -1,13 +1,17 @@
 %define nijigenerate_ver 0.7.1
-%define nijigenerate_semver 0.7.1+build.994.ge77ca8a
-%define nijigenerate_dist 994
-%define nijigenerate_commit e77ca8ab25a31b54b0b3e6747e98a5d9b7eea993
-%define nijigenerate_short e77ca8a
+%define nijigenerate_semver 0.7.1+build.1069.ge17deae
+%define nijigenerate_dist 1069
+%define nijigenerate_commit e17deae052fa0156b8ede56b20c866f8bba9c377
+%define nijigenerate_short e17deae
 
 # Project maintained deps
-%define nijilive_semver 0.0.0+build.652.bd00329
-%define nijilive_commit bd003295f2bae1c67127d4f5c051a9e91099078a
-%define nijilive_short bd00329
+%define kra_d_semver 0.5.5+build.5.g6a0bd41
+%define kra_d_commit 6a0bd415c2bb948e4414e9e3b9d2113f1bf21e42
+%define kra_d_short 6a0bd41
+
+%define nijilive_semver 0.0.0+build.657.1ebf533
+%define nijilive_commit 1ebf533aceab3c20d340772a56a10d081d48d944
+%define nijilive_short 1ebf533
 
 %if 0%{nijigenerate_dist} > 0
 %define nijigenerate_suffix ^%{nijigenerate_dist}.git%{nijigenerate_short}
@@ -19,6 +23,7 @@ Release:        %autorelease
 Summary:        Tool to create and edit nijilive puppets
 
 # Bundled lib licenses
+##   kra-d licenses: BSD-2-Clause
 ##   nijilive licenses: BSD-2-Clause
 # Static dependencies licenses
 ##   bcaa licenses: BSL-1.0
@@ -35,7 +40,6 @@ Summary:        Tool to create and edit nijilive puppets
 ##   i2d-opengl licenses: BSL-1.0
 ##   imagefmt licenses: BSD-2-Clause
 ##   inmath licenses: BSD-2-Clause
-##   kra-d licenses: BSD-2-Clause
 ##   mir-algorithm licenses: Apache-2.0
 ##   mir-core licenses: Apache-2.0
 ##   mir-linux-kernel licenses: BSL-1.0
@@ -50,10 +54,10 @@ URL:            https://github.com/grillo-delmal/nijigenerate-rpm
 Source0:        https://github.com/nijigenerate/nijigenerate/archive/%{nijigenerate_commit}/%{name}-%{nijigenerate_short}.tar.gz
 
 # Project maintained deps
-Source1:        https://github.com/nijigenerate/nijilive/archive/%{nijilive_commit}/nijilive-%{nijilive_short}.tar.gz
+Source1:        https://github.com/Inochi2D/kra-d/archive/%{kra_d_commit}/kra_d-%{kra_d_short}.tar.gz
+Source2:        https://github.com/nijigenerate/nijilive/archive/%{nijilive_commit}/nijilive-%{nijilive_short}.tar.gz
 
-Patch0:         nijigenerate_0_icon-path.patch
-Patch1:         nijigenerate_1_deps.patch
+Patch0:         nijigenerate_0_deps.patch
 
 # dlang
 BuildRequires:  ldc
@@ -80,7 +84,6 @@ BuildRequires:  zdub-i2d-imgui-static
 BuildRequires:  zdub-i2d-opengl-static
 BuildRequires:  zdub-imagefmt-static
 BuildRequires:  zdub-inmath-static
-BuildRequires:  zdub-kra-d-static
 BuildRequires:  zdub-mir-algorithm-static
 BuildRequires:  zdub-mir-core-static
 BuildRequires:  zdub-mir-linux-kernel-static
@@ -129,12 +132,23 @@ subpackage "http"
 EOF
 dub add-local deps/vibe-d "0.9.5"
 
-%patch -P 0 -p1 -b .nijigenerate-icon-path
-%patch -P 1 -p1 -b .nijigenerate-deps
+%patch -P 0 -p1 -b .nijigenerate-deps
 mkdir -p deps
 
 # Project maintained deps
 tar -xzf %{SOURCE1}
+mv kra-d-%{kra_d_commit} deps/kra-d
+dub add-local deps/kra-d/ "%{kra_d_semver}"
+
+pushd deps; pushd kra-d
+
+[ -f dub.sdl ] && dub convert -f json
+mv -f dub.json dub.json.base
+jq 'walk(if type == "object" then with_entries(select(.key | test("preBuildCommands*") | not)) else . end)' dub.json.base > dub.json
+
+popd; popd
+
+tar -xzf %{SOURCE2}
 mv nijilive-%{nijilive_commit} deps/nijilive
 dub add-local deps/nijilive/ "%{nijilive_semver}"
 
