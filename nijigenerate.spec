@@ -102,9 +102,6 @@ BuildRequires:       gcc-c++
 BuildRequires:       freetype-devel
 BuildRequires:       SDL2-devel
 
-#mir-algorithm reqs
-BuildRequires:       zdub-silly-static
-
 Requires:       hicolor-icon-theme
 
 #dportals deps
